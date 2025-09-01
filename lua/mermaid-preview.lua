@@ -61,8 +61,8 @@ function M._create_buf()
 end
 
 ---Open a new preview window in a vertical split.
----If a preview buffer already exists, it will be reused,
----otherwise a new one will be created
+---If a preview buffer already exists, reuse it
+---otherwise create a new one
 ---@return integer #id of newly opened window
 function M.open_preview_window()
     -- First make sure the preview buffer exists

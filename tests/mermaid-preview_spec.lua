@@ -1,0 +1,5 @@
+describe("mermaid-previewer", function()
+    it("can open a new split", function()
+        assert.are.same({}, {})
+    end)
+end)

@@ -1,0 +1,6 @@
+================================================================================
+                                                        *mermaid-preview.nvim*
+
+A plugin to preview mermaid diagrams in a split window
+
+vim:tw=80:ts=4:expandtab:et:ft=help:norl:

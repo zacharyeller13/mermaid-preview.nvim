@@ -12,31 +12,20 @@ describe("mermaid-preview", function()
 
     it("works with default setup", function()
         local expected_width = 100
-
+        local expected_title = "Diagram Preview"
         preview.setup()
-        local winid = preview.open_preview_window()
-        local bufname = vim.fn.bufname(preview.bufnr)
-        local bufinfo = vim.fn.getbufinfo(preview.bufnr)
 
-        assert.equals(preview.config.preview_title, "Diagram Preview")
+        assert.equals(preview.config.preview_title, expected_title)
         assert.equals(preview.config.default_width, expected_width)
-        assert.equals(bufname, "Diagram Preview")
-
-        assert.equals(vim.api.nvim_win_get_width(winid), expected_width)
     end)
 
     it("works with custom setup", function()
         local expected_width = 150
-        preview.setup({ preview_title = "Test", default_width = expected_width })
-        local winid = preview.open_preview_window()
-        local bufname = vim.fn.bufname(preview.bufnr)
-        local bufinfo = vim.fn.getbufinfo(preview.bufnr)
+        local expected_title = "Test"
+        preview.setup({ preview_title = expected_title, default_width = expected_width })
 
-        assert.equals(preview.config.preview_title, "Test")
+        assert.equals(preview.config.preview_title, expected_title)
         assert.equals(preview.config.default_width, expected_width)
-        assert.equals(bufname, "Test")
-
-        assert.equals(vim.api.nvim_win_get_width(winid), expected_width)
     end)
 
     it("can create new preview window", function()
@@ -46,7 +35,25 @@ describe("mermaid-preview", function()
         assert.True(vim.api.nvim_win_is_valid(preview.winid))
     end)
 
-    it("preview buffer has autocmds", function()
+    it("opens window with default width", function()
+        local expected_width = 150
+        preview.setup({ default_width = expected_width })
+
+        local winid = preview.open_preview_window()
+        assert.equals(vim.api.nvim_win_get_width(winid), expected_width)
+    end)
+
+    it("opens window with configured title", function()
+        local expected_title = "Test"
+        preview.setup({ preview_title = "Test" })
+
+        _ = preview.open_preview_window()
+        local bufname = vim.fn.bufname(preview.bufnr)
+
+        assert.equals(bufname, expected_title)
+    end)
+
+    it("creates preview buffer with required autocmds", function()
         _ = preview.open_preview_window()
         local autocmds = vim.api.nvim_get_autocmds({
             group = "MermaidPreview",
@@ -54,5 +61,18 @@ describe("mermaid-preview", function()
             buffer = preview.bufnr,
         })
         assert.equals(#autocmds, 1)
+    end)
+
+    it("can hide open window and preserve buffer", function()
+        preview.setup()
+
+        _ = preview.open_preview_window()
+        preview.hide_preview_window()
+
+        local bufinfo = vim.fn.getbufinfo(preview.bufnr)[1]
+
+        assert.True(vim.api.nvim_buf_is_valid(preview.bufnr))
+        assert.equals(bufinfo.hidden, 1)
+        assert.equals(preview.winid, nil)
     end)
 end)

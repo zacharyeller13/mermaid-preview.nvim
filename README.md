@@ -59,7 +59,7 @@ See `:help mermaid-preview.nvim`
 
 ## TODOs
 
-- [ ] vertical split opening
+- [x] vertical split opening
 - [ ] rendering
 - [ ] supporting more than 1 diagram and more than 1 markdown file in the same session
 - [ ] autocmds
@@ -67,5 +67,6 @@ See `:help mermaid-preview.nvim`
     - [ ] `CursorMovedI`?
 - [ ] vimdocs
 - [ ] tests
+- [ ] health
 - [ ] readme
 

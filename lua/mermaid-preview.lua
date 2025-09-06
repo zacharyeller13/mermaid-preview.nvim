@@ -28,8 +28,10 @@ The whole point is to figure out, are we inside of a mermaid diagram code block?
 --]]
 
 ---@class MermaidPreview.Config
+---@field default_width integer Default width of preview window. May be overwritten by vim.o.columns
 ---@field preview_title? string Title to give the preview window
 local config = {
+    default_width = 100,
     preview_title = "Diagram Preview",
 }
 
@@ -83,8 +85,7 @@ function M.open_preview_window()
         })
     end
 
-    -- If there's no image yet, then just default to width 100
-    local width = (M.image or {}).image_width or 100
+    local width = (M.image or {}).image_width or M.config.default_width
     local winid = vim.api.nvim_open_win(bufnr, false, {
         split = "right",
         focusable = false,
@@ -93,6 +94,21 @@ function M.open_preview_window()
     })
     M.winid = winid
     return winid
+end
+
+---Hide open preview window
+function M.hide_preview_window()
+    if M.winid == nil then
+        return
+    end
+
+    if vim.api.nvim_win_is_valid(M.winid) then
+        vim.api.nvim_win_hide(M.winid)
+    else
+        -- If for some reason winid is not nil but also isn't valid
+        -- we need to reset it
+        M.winid = nil
+    end
 end
 
 ---Generate a temporary .png file and write the preview image to it.

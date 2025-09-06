@@ -9,6 +9,7 @@ A plugin to preview mermaid diagrams in a split window
 * [Dependencies](#dependencies)
 * [Installation](#installation)
   * [lazy](#lazy)
+* [Default Config](#default-config)
 * [TODOs](#todos)
 
 <!-- mtoc-end -->
@@ -40,6 +41,18 @@ See `:help mermaid-preview.nvim`
     },
     ft = "markdown",
     opts = {}
+}
+```
+
+## Default Config
+
+```lua
+---@class MermaidPreview.Config
+---@field default_width integer Default width of preview window. May be overwritten by vim.o.columns
+---@field preview_title? string Title to give the preview window
+{
+    default_width = 100,
+    preview_title = "Diagram Preview",
 }
 ```
 

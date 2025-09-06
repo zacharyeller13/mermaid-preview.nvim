@@ -6,24 +6,37 @@ describe("mermaid-preview", function()
             vim.api.nvim_buf_delete(preview.bufnr, { force = true })
             preview.bufnr = nil
         end
+        -- Typically the gui is going to be larger than default 80
+        vim.o.columns = 160
     end)
 
     it("works with default setup", function()
+        local expected_width = 100
+
         preview.setup()
-        _ = preview.open_preview_window()
+        local winid = preview.open_preview_window()
         local bufname = vim.fn.bufname(preview.bufnr)
         local bufinfo = vim.fn.getbufinfo(preview.bufnr)
+
         assert.equals(preview.config.preview_title, "Diagram Preview")
+        assert.equals(preview.config.default_width, expected_width)
         assert.equals(bufname, "Diagram Preview")
+
+        assert.equals(vim.api.nvim_win_get_width(winid), expected_width)
     end)
 
     it("works with custom setup", function()
-        preview.setup({ preview_title = "Test" })
-        _ = preview.open_preview_window()
+        local expected_width = 150
+        preview.setup({ preview_title = "Test", default_width = expected_width })
+        local winid = preview.open_preview_window()
         local bufname = vim.fn.bufname(preview.bufnr)
         local bufinfo = vim.fn.getbufinfo(preview.bufnr)
+
         assert.equals(preview.config.preview_title, "Test")
+        assert.equals(preview.config.default_width, expected_width)
         assert.equals(bufname, "Test")
+
+        assert.equals(vim.api.nvim_win_get_width(winid), expected_width)
     end)
 
     it("can create new preview window", function()

@@ -75,4 +75,13 @@ describe("mermaid-preview", function()
         assert.equals(bufinfo.hidden, 1)
         assert.equals(preview.winid, nil)
     end)
+
+    it("opens exactly one preview window", function()
+        local winid = preview.open_preview_window()
+        local winid2 = preview.open_preview_window()
+
+        assert.equals(winid, winid2)
+        assert.equals(preview.winid, winid)
+        assert.equals(preview.winid, winid2)
+    end)
 end)

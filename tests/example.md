@@ -6,6 +6,11 @@ flowchart LR
     B --> A
 ```
 
+```mermaid
+flowchart RL
+    A --> B
+```
+
 ```bash
 ls
 ```

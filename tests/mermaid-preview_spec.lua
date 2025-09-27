@@ -7,11 +7,11 @@ describe("mermaid-preview", function()
             preview.bufnr = nil
         end
         -- Typically the gui is going to be larger than default 80
-        vim.o.columns = 160
+        -- vim.o.columns = 160
     end)
 
     it("works with default setup", function()
-        local expected_width = 100
+        local expected_width = vim.o.columns / 2
         local expected_title = "Diagram Preview"
         preview.setup()
 
@@ -36,7 +36,7 @@ describe("mermaid-preview", function()
     end)
 
     it("opens window with default width", function()
-        local expected_width = 150
+        local expected_width = vim.o.columns / 2
         preview.setup({ default_width = expected_width })
 
         local winid = preview.open_preview_window()

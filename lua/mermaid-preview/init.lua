@@ -140,7 +140,7 @@ function M.render_preview()
     -- preview window closed
     if not M.winid then
         M.image.window = M.window.open_preview_window()
-        -- Sometimes rendering only partially works.  Likely due to the window not being fully
+        -- Sometimes rendering only partially renders, likely due to the window not being fully
         -- open yet. Delaying rendering fixes this
         vim.schedule(function()
             M.image:render()

@@ -7,6 +7,16 @@
     TextChangedI (Triggers often)
 --]]
 
+---@param message any
+local function notify(message)
+    if type(message) ~= "string" then
+        message = vim.inspect(message)
+    end
+    vim.system({ "hyprctl", "notify", "-1", "1000", "rgb(ff1ea3)", message })
+end
+
+local ts_utils = require("mermaid-preview.ts-utils")
+
 ---@class MermaidPreview.Config
 ---@field default_width integer Default width of preview window. May be overwritten by vim.o.columns
 ---@field preview_title string Title to give the preview window
@@ -22,63 +32,40 @@ local config = {
 ---@field tempfile? string Temp file holding the preview image
 ---@field _augroup integer autocmd group id
 ---@field window MermaidPreview.Window Window handler
+---@field nodes table<string, TSNode>
 local M = {
     ---@type MermaidPreview.Config
     config = config,
 
     image = nil,
     tempfile = nil,
+    nodes = {},
 }
-
----If node is in a `fenced_code_block`, find that root node
----@param node? TSNode
----@return TSNode? #`fenced_code_block` root node if there is one
-local function get_code_block_root(node)
-    if node == nil then
-        return nil
-    end
-
-    while node do
-        if node:type() == "fenced_code_block" then
-            return node
-        end
-        node = node:parent()
-    end
-    return nil
-end
-
----Check if node is in a mermaid diagram
----@param node? TSNode A `fenced_code_block` TSNode
----@return boolean #True if node is inside a mermaid diagram code block
-local function is_mermaid_diagram(node)
-    if node == nil then
-        return false
-    end
-    if node:type() ~= "fenced_code_block" then
-        return false
-    end
-    for n, _ in node:iter_children() do
-        if n:type() == "info_string" then
-            return vim.treesitter.get_node_text(n, 0) == "mermaid"
-        end
-    end
-    return false
-end
 
 local function setup_autocmds()
     vim.api.nvim_create_autocmd("CursorMoved", {
         pattern = { "*.md" },
         group = M._augroup,
         callback = function()
+            if DEBUG then
+                notify(M.window)
+                if M.image then
+                    notify(M.image.path)
+                end
+            end
             local node = vim.treesitter.get_node()
 
-            local code_block_root = get_code_block_root(node)
-            if code_block_root and is_mermaid_diagram(code_block_root) then
-                vim.print("In code block")
+            local code_block_root = ts_utils.get_code_block_root(node)
+            if code_block_root and ts_utils.is_mermaid_diagram(code_block_root) then
+                if DEBUG then
+                    notify("In code block")
+                end
                 -- If the preview window is already opened then we don't need to regenerate
                 -- constantly
+                -- TODO: May need to regenerate in the case we switch from 1 diagram
+                -- to another in the same cursor move
                 if M.window.winid then
-                    vim.print("M.window.winid not nil")
+                    notify("M.window.winid not nil")
                     return
                 end
 
@@ -86,12 +73,13 @@ local function setup_autocmds()
                 local start_row, _, end_row, _ = code_block_root:range()
                 -- Skip the first and last rows of the code block
                 local chart_lines = vim.api.nvim_buf_get_lines(0, start_row + 1, end_row - 1, false)
-                vim.print(chart_lines)
+                if DEBUG then
+                    notify(chart_lines)
+                end
                 M.generate_preview(chart_lines)
-                M.render_preview()
                 return
             end
-            M.window.hide_preview_window()
+            M.window:hide_preview_window()
         end,
         nested = true,
     })
@@ -101,6 +89,7 @@ end
 ---@param chart_lines string[] Array of chart lines passed to stdin
 function M.generate_preview(chart_lines)
     local tempfile = M.tempfile or (vim.fn.tempname() .. ".png")
+    -- local tempfile = vim.fn.tempname() .. ".png"
     M.tempfile = tempfile
     vim.system(
         { "mmdc", "-i", "-", "-o", tempfile, "-e", "png", "-s", tostring(M.config.image_scale) },
@@ -113,6 +102,7 @@ function M.generate_preview(chart_lines)
                 return
             end
             M.image = require("image").from_file(tempfile, { width = config.default_width })
+            vim.schedule(M.render_preview)
         end
     )
 end
@@ -139,12 +129,12 @@ function M.render_preview()
 
     -- preview window closed
     if not M.winid then
-        M.image.window = M.window.open_preview_window()
+        M.image.window = M.window:open_preview_window()
         -- Sometimes rendering only partially renders, likely due to the window not being fully
-        -- open yet. Delaying rendering fixes this
-        vim.schedule(function()
+        -- open yet. Delaying rendering with a specific duration seems to fix this
+        vim.defer_fn(function()
             M.image:render()
-        end)
+        end, 100)
     end
 end
 
@@ -155,7 +145,12 @@ M.setup = function(opts)
     M._augroup = vim.api.nvim_create_augroup("MermaidPreview", { clear = true })
     M.window = require("mermaid-preview.window-manager")
     M.window.title = M.config.preview_title
-    setup_autocmds()
+
+    -- vim.api.nvim_buf_attach(0, false, {
+    --     on_lines = function(...) end,
+    -- })
+
+    -- setup_autocmds()
 end
 
 return M

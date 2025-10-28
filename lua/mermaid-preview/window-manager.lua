@@ -82,9 +82,7 @@ local default_opts = {
 ---@return MermaidPreview.Window
 M.new = function(opts)
     opts = vim.tbl_deep_extend("force", default_opts, opts or {})
-    local instance = setmetatable({}, M)
-    instance.title = opts.title
-    instance.width = opts.width
+    local instance = setmetatable({ title = opts.title, width = opts.width }, M)
 
     return instance
 end

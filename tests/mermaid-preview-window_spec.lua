@@ -4,7 +4,7 @@ local plenary = require("plenary.busted")
 ---@type MermaidPreview.Window
 local win
 
-describe("mermaid-preview", function()
+describe("mermaid-preview.window-manager", function()
     -- Reset the window so tests get a clean slate
     before_each(function()
         if win and win.bufnr then
@@ -37,7 +37,7 @@ describe("mermaid-preview", function()
 
         assert.equals(bufname, expected_title)
     end)
-    --
+
     it("creates preview buffer with required BufHidden autocmd", function()
         win:open_preview_window()
         local autocmds = vim.api.nvim_get_autocmds({
@@ -66,5 +66,15 @@ describe("mermaid-preview", function()
         assert.equals(winid, winid2)
         assert.equals(win.winid, winid)
         assert.equals(win.winid, winid2)
+    end)
+
+    it("clears winid when window hidden manually", function()
+        local winid = win:open_preview_window()
+        vim.api.nvim_win_call(winid, function()
+            vim.cmd(":q")
+        end)
+
+        assert.False(vim.api.nvim_win_is_valid(winid))
+        assert.is_nil(win.winid)
     end)
 end)

@@ -13,14 +13,25 @@ local query = vim.treesitter.query.parse(
 
 ---Add captured mermaid diagram nodes to nodes list
 function M:cache_nodes()
-    local parser = vim.treesitter.get_parser(0, "markdown")
-    local root = parser:parse()[1]:root()
+    local parser, err = vim.treesitter.get_parser(0, "markdown")
+    if err then
+        vim.notify("MermaidPreview.ts-utils: Couldn't get markdown parser " .. err, vim.log.levels.WARN)
+        return
+    end
+    assert(parser, "parser is nil")
+
+    local trees = parser:parse()
+    if not trees then
+        vim.notify("MermaidPreview.ts-utils: tree not parsed", vim.log.levels.WARN)
+        return
+    end
+
+    local root = trees[1]:root()
     self.nodes = {}
 
     for id, node in query:iter_captures(root, 0) do
         local name = query.captures[id]
         if name == "diagram" then
-            print(node, name)
             table.insert(self.nodes, node)
         end
     end
@@ -37,65 +48,55 @@ end
 -- A different vim.fn.tempname() for each diagram
 -- add nodes to list of nodes
 
--- TODO: buf attach
--- onchanged update list of mermaid nodes
--- regenerate diagram if it is under the current cursor position
-
 -- TODO: nvim-treesitter.ts_utils.memoize_by_buf_tick?
--- iter_captures?
-
----If node is in a `fenced_code_block`, find that root node
----@param node? TSNode
----@return TSNode? #`fenced_code_block` root node if there is one
-local function get_code_block_root(node)
-    if node == nil then
-        return nil
-    end
-
-    while node do
-        if node:type() == "fenced_code_block" then
-            return node
-        end
-        node = node:parent()
-    end
-    return nil
-end
+-- Instead of doing M.nodes; could just memoize cache_nodes as a get_nodes func
+-- and return the table instead of saving it to a field
 
 ---Check if node is in a mermaid diagram
 ---@param node? TSNode A TSNode
 ---@return boolean #True if node is inside a mermaid diagram code block
-local function is_mermaid_diagram2(node)
-    -- TODO: If cached nodes is empty, populate it
+local function is_mermaid_diagram(node)
+    if not node then
+        return false
+    end
+
+    if #M.nodes == 0 then
+        M:cache_nodes()
+    end
+
     for _, code_block in ipairs(M.nodes) do
         if vim.treesitter.is_ancestor(code_block, node) then
-            print("Diagram")
+            vim.notify("MermaidPreview.ts-utils: In mermaid diagram", vim.log.levels.DEBUG)
             return true
         end
     end
     return false
 end
 
----Check if node is in a mermaid diagram
----@param node? TSNode A `fenced_code_block` TSNode
----@return boolean #True if node is inside a mermaid diagram code block
-local function is_mermaid_diagram(node)
-    if node == nil then
-        return false
-    end
-    if node:type() ~= "fenced_code_block" then
-        return false
-    end
-    for n in node:iter_children() do
-        if n:type() == "info_string" then
-            return vim.treesitter.get_node_text(n, 0) == "mermaid"
-        end
-    end
-    return false
-end
+-- TODO: buf attach
+-- onchanged update list of mermaid nodes
+-- regenerate diagram if it is under the current cursor position
+vim.api.nvim_buf_attach(0, false, {
+    on_lines = function()
+        -- Re-cache nodes because they've probably moved
+        M:cache_nodes()
 
-M.get_code_block_root = get_code_block_root
+        -- TODO: Do we schedule instead?
+        -- Seemingly no, b/c we need the nodes cached correctly for the next check
+        -- Maybe schedule the entire block here?
+        -- vim.schedule(function()
+        --     M:cache_nodes()
+        -- end)
+
+        -- Regenerate diagram for current cursor, only if editing a diagram
+        local node = vim.treesitter.get_node()
+        if is_mermaid_diagram(node) then
+            -- TODO: regenerate preview
+        end
+    end,
+})
+
 M.is_mermaid_diagram = is_mermaid_diagram
-M.is_mermaid_diagram2 = is_mermaid_diagram2
 
 -- vim.keymap.set({ "n", "v" }, "<leader>t", function()
 --     require("mermaid-preview.ts-utils"):cache_nodes()

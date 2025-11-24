@@ -6,6 +6,7 @@
     TextChanged
     TextChangedI (Triggers often)
 --]]
+-- FIX: Loads on hover because info is "rendered" in hovers
 
 ---@param message any
 local function notify(message)

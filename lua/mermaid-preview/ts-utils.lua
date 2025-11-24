@@ -18,7 +18,7 @@ function M:cache_nodes()
         vim.notify("MermaidPreview.ts-utils: Couldn't get markdown parser " .. err, vim.log.levels.WARN)
         return
     end
-    assert(parser, "parser is nil")
+    assert(parser, "parser should not be nil")
 
     local trees = parser:parse()
     if not trees then
@@ -27,14 +27,15 @@ function M:cache_nodes()
     end
 
     local root = trees[1]:root()
-    self.nodes = {}
+    local nodes = {}
 
     for id, node in query:iter_captures(root, 0) do
         local name = query.captures[id]
         if name == "diagram" then
-            table.insert(self.nodes, node)
+            table.insert(nodes, node)
         end
     end
+    self.nodes = nodes
 end
 
 function M:print_nodes()
@@ -60,6 +61,8 @@ local function is_mermaid_diagram(node)
         return false
     end
 
+    -- FIX: Is this actually necessary here? We should probably never be hitting this
+    -- function without having already cached at least once
     if #M.nodes == 0 then
         M:cache_nodes()
     end
@@ -88,10 +91,9 @@ vim.api.nvim_buf_attach(0, false, {
         --     M:cache_nodes()
         -- end)
 
-        -- Regenerate diagram for current cursor, only if editing a diagram
+        -- TODO: Regenerate diagram for current cursor, only if editing a diagram
         local node = vim.treesitter.get_node()
         if is_mermaid_diagram(node) then
-            -- TODO: regenerate preview
         end
     end,
 })

@@ -1,5 +1,5 @@
+require("plenary.busted")
 local ts_utils = require("mermaid-preview.ts-utils")
-local plenary = require("plenary.busted")
 
 local test_lines = vim.split(
     [[

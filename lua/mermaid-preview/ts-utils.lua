@@ -76,34 +76,6 @@ local function is_mermaid_diagram(node)
     return false
 end
 
--- TODO: buf attach
--- onchanged update list of mermaid nodes
--- regenerate diagram if it is under the current cursor position
-vim.api.nvim_buf_attach(0, false, {
-    on_lines = function()
-        -- Re-cache nodes because they've probably moved
-        M:cache_nodes()
-
-        -- TODO: Do we schedule instead?
-        -- Seemingly no, b/c we need the nodes cached correctly for the next check
-        -- Maybe schedule the entire block here?
-        -- vim.schedule(function()
-        --     M:cache_nodes()
-        -- end)
-
-        -- TODO: Regenerate diagram for current cursor, only if editing a diagram
-        local node = vim.treesitter.get_node()
-        if is_mermaid_diagram(node) then
-        end
-    end,
-})
-
 M.is_mermaid_diagram = is_mermaid_diagram
-
--- vim.keymap.set({ "n", "v" }, "<leader>t", function()
---     require("mermaid-preview.ts-utils"):cache_nodes()
---     local node = vim.treesitter.get_node()
---     require("mermaid-preview.ts-utils").is_mermaid_diagram2(node)
--- end)
 
 return M

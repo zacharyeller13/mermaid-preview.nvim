@@ -1,10 +1,10 @@
-local window = require("mermaid-preview.window-manager")
-local plenary = require("plenary.busted")
+require("plenary.busted")
+local window = require("mermaid-preview.window")
 
 ---@type MermaidPreview.Window
 local win
 
-describe("mermaid-preview.window-manager", function()
+describe("mermaid-preview.window", function()
     -- Reset the window so tests get a clean slate
     before_each(function()
         if win and win.bufnr then
@@ -14,7 +14,7 @@ describe("mermaid-preview.window-manager", function()
     end)
 
     it("can create new preview window", function()
-        local winid = win:open_preview_window()
+        local winid = win:open()
 
         assert.equals(winid, win.winid)
         assert.True(vim.api.nvim_buf_is_valid(win.bufnr))
@@ -24,7 +24,7 @@ describe("mermaid-preview.window-manager", function()
     it("opens window with default width", function()
         local expected_width = vim.o.columns / 2
 
-        local winid = win:open_preview_window()
+        local winid = win:open()
         assert.equals(vim.api.nvim_win_get_width(winid), expected_width)
     end)
 
@@ -32,14 +32,14 @@ describe("mermaid-preview.window-manager", function()
         local expected_title = "Test"
         win = window.new({ title = "Test" })
 
-        win:open_preview_window()
+        win:open()
         local bufname = vim.fn.bufname(win.bufnr)
 
         assert.equals(bufname, expected_title)
     end)
 
     it("creates preview buffer with required BufHidden autocmd", function()
-        win:open_preview_window()
+        win:open()
         local autocmds = vim.api.nvim_get_autocmds({
             group = "MermaidPreview.Window",
             event = "BufHidden",
@@ -49,8 +49,8 @@ describe("mermaid-preview.window-manager", function()
     end)
 
     it("can hide open window and preserve buffer", function()
-        win:open_preview_window()
-        win:hide_preview_window()
+        win:open()
+        win:hide()
 
         local bufinfo = vim.fn.getbufinfo(win.bufnr)[1]
 
@@ -60,8 +60,8 @@ describe("mermaid-preview.window-manager", function()
     end)
 
     it("opens exactly one preview window", function()
-        local winid = win:open_preview_window()
-        local winid2 = win:open_preview_window()
+        local winid = win:open()
+        local winid2 = win:open()
 
         assert.equals(winid, winid2)
         assert.equals(win.winid, winid)
@@ -69,7 +69,7 @@ describe("mermaid-preview.window-manager", function()
     end)
 
     it("clears winid when window hidden manually", function()
-        local winid = win:open_preview_window()
+        local winid = win:open()
         vim.api.nvim_win_call(winid, function()
             vim.cmd(":q")
         end)

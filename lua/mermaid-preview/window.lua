@@ -24,8 +24,8 @@ end
 ---Open a new preview window in a vertical split.
 ---If a preview buffer already exists, reuse it
 ---otherwise create a new one
----@return integer #id of newly opened window
-function M:open_preview_window()
+---@return integer #id of opened window
+function M:open()
     -- If a window is already open, don't do anything
     if self.winid then
         return self.winid
@@ -61,7 +61,7 @@ function M:open_preview_window()
 end
 
 ---Hide open preview window
-function M:hide_preview_window()
+function M:hide()
     if self.winid == nil then
         return
     end
@@ -78,7 +78,7 @@ local default_opts = {
 }
 
 ---Create new preview window instance
----@param opts? {title: string?, width: integer?}
+---@param opts? {title?: string, width?: integer}
 ---@return MermaidPreview.Window
 M.new = function(opts)
     opts = vim.tbl_deep_extend("force", default_opts, opts or {})

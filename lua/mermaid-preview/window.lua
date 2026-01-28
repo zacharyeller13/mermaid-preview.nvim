@@ -72,6 +72,18 @@ function M:hide()
     self.winid = nil
 end
 
+---Show window and render img
+---@param img Image
+function M:show(img)
+    local winid = self.winid or self:open()
+    img.window = winid
+    -- Sometimes rendering only partially renders, likely due to the window not being fully
+    -- open yet. Delaying rendering with a specific duration seems to fix this
+    vim.defer_fn(function()
+        img:render()
+    end, 100)
+end
+
 local default_opts = {
     title = "Diagram Preview",
     width = math.floor(vim.o.columns / 2),

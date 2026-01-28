@@ -22,16 +22,18 @@ local ts_utils = require("mermaid-preview.ts-utils")
 ---@field default_width integer Default width of preview window. May be overwritten by vim.o.columns
 ---@field preview_title string Title to give the preview window
 ---@field image_scale integer Scale to pass into mermaid-cli when generating the initial diagram preview
+---@field use_autocmds boolean Use autocmds to show/hide mermaid preview automatically on cursor enter/exit
 local config = {
     default_width = math.floor(vim.o.columns / 2),
     preview_title = "Diagram Preview",
     image_scale = 5,
+    use_autocmds = false,
 }
 
 ---@class MermaidPreview
+---@field _augroup integer autocmd group id
 ---@field image? Image From image.nvim, an instance of the renderable image
 ---@field tempfile? string Temp file holding the preview image
----@field _augroup integer autocmd group id
 ---@field window MermaidPreview.Window Window handler
 ---@field nodes table<string, TSNode>
 local M = {
@@ -43,6 +45,7 @@ local M = {
     nodes = {},
 }
 
+-- FIX: Import mermaid
 local function setup_autocmds()
     vim.api.nvim_create_autocmd("CursorMoved", {
         pattern = { "*.md" },
@@ -56,6 +59,8 @@ local function setup_autocmds()
             end
             local node = vim.treesitter.get_node()
 
+            -- TODO: redo generating/showing the diagram under the cursor
+            -- this is separate from the on-lines callback
             local code_block_root = ts_utils.get_code_block_root(node)
             if code_block_root and ts_utils.is_mermaid_diagram(code_block_root) then
                 if DEBUG then
@@ -80,32 +85,10 @@ local function setup_autocmds()
                 M.generate_preview(chart_lines)
                 return
             end
-            M.window:hide_preview_window()
+            M.window:hide()
         end,
         nested = true,
     })
-end
-
----Generate a temporary .png file and write the preview image to it.
----@param chart_lines string[] Array of chart lines passed to stdin
-function M.generate_preview(chart_lines)
-    local tempfile = M.tempfile or (vim.fn.tempname() .. ".png")
-    -- local tempfile = vim.fn.tempname() .. ".png"
-    M.tempfile = tempfile
-    vim.system(
-        { "mmdc", "-i", "-", "-o", tempfile, "-e", "png", "-s", tostring(M.config.image_scale) },
-        { stdin = chart_lines },
-        function(out)
-            if out.code ~= 0 then
-                vim.schedule(function()
-                    vim.notify("MermaidPreview: Error generating image\n" .. out.stderr, vim.log.levels.ERROR)
-                end)
-                return
-            end
-            M.image = require("image").from_file(tempfile, { width = config.default_width })
-            vim.schedule(M.render_preview)
-        end
-    )
 end
 
 ---Display the preview image in the preview window
@@ -130,7 +113,7 @@ function M.render_preview()
 
     -- preview window closed
     if not M.winid then
-        M.image.window = M.window:open_preview_window()
+        M.image.window = M.window:open()
         -- Sometimes rendering only partially renders, likely due to the window not being fully
         -- open yet. Delaying rendering with a specific duration seems to fix this
         vim.defer_fn(function()
@@ -144,14 +127,31 @@ M.setup = function(opts)
     vim.notify("Loaded MermaidPreview")
     M.config = vim.tbl_deep_extend("force", M.config, opts or {})
     M._augroup = vim.api.nvim_create_augroup("MermaidPreview", { clear = true })
-    M.window = require("mermaid-preview.window-manager")
-    M.window.title = M.config.preview_title
+    M.window = require("mermaid-preview.window").new({
+        title = M.config.preview_title,
+        width = M.config.default_width,
+    })
 
-    -- vim.api.nvim_buf_attach(0, false, {
-    --     on_lines = function(...) end,
-    -- })
+    -- onchanged update list of mermaid nodes
+    -- regenerate diagram if it is under the current cursor position
+    vim.api.nvim_buf_attach(0, false, {
+        on_lines = function()
+            -- Re-cache nodes because they've probably moved
+            ts_utils:cache_nodes()
 
-    -- setup_autocmds()
+            -- TODO: Do we schedule instead?
+            -- Seemingly no, b/c we need the nodes cached correctly for the next check
+            -- Maybe schedule the entire block here?
+            -- vim.schedule(function()
+            --     M:cache_nodes()
+            -- end)
+
+            local node = vim.treesitter.get_node()
+            if ts_utils.is_mermaid_diagram(node) then
+                -- TODO: Regenerate diagram for current cursor, only if editing a diagram
+            end
+        end,
+    })
 end
 
 return M

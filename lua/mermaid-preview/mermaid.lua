@@ -4,7 +4,7 @@ local M = {}
 ---Generate a temporary .png file, write the diagram img into it, load into an Image object.
 ---If image_callback is provided, run asynchronously and vim.schedule the callback with the resulting
 ---Image. Otherwise, run synchronously and return the Image
----@param chart_lines string[] Array of chart lines passed to stdin
+---@param chart_lines string[]|string Array of chart lines passed to stdin, or single string with newlines
 ---@param image_scale integer Scale factor for output image
 ---@param width integer Width of image to display
 ---@param image_callback? fun(img: Image) Function to call on the resulting Image. If nil, Image will be returned instead

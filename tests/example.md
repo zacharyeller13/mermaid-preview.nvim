@@ -4,6 +4,7 @@
 flowchart LR
     A --> B
     B --> A
+    C --> B
 ```
 
 ```mermaid
@@ -20,3 +21,4 @@ ls
 
 ![](./example.md-1.png)
 
+require("mermaid")

@@ -8,14 +8,6 @@
 --]]
 -- FIX: Loads on hover because info is "rendered" in hovers
 
----@param message any
-local function notify(message)
-    if type(message) ~= "string" then
-        message = vim.inspect(message)
-    end
-    vim.system({ "hyprctl", "notify", "-1", "1000", "rgb(ff1ea3)", message })
-end
-
 local ts_utils = require("mermaid-preview.ts-utils")
 
 ---@class MermaidPreview.Config
@@ -45,80 +37,22 @@ local M = {
     nodes = {},
 }
 
--- FIX: Import mermaid
-local function setup_autocmds()
-    vim.api.nvim_create_autocmd("CursorMoved", {
-        pattern = { "*.md" },
-        group = M._augroup,
-        callback = function()
-            if DEBUG then
-                notify(M.window)
-                if M.image then
-                    notify(M.image.path)
-                end
-            end
-            local node = vim.treesitter.get_node()
-
-            -- TODO: redo generating/showing the diagram under the cursor
-            -- this is separate from the on-lines callback
-            local code_block_root = ts_utils.get_code_block_root(node)
-            if code_block_root and ts_utils.is_mermaid_diagram(code_block_root) then
-                if DEBUG then
-                    notify("In code block")
-                end
-                -- If the preview window is already opened then we don't need to regenerate
-                -- constantly
-                -- TODO: May need to regenerate in the case we switch from 1 diagram
-                -- to another in the same cursor move
-                if M.window.winid then
-                    notify("M.window.winid not nil")
-                    return
-                end
-
-                -- We only need to run this if it's not already open and generated
-                local start_row, _, end_row, _ = code_block_root:range()
-                -- Skip the first and last rows of the code block
-                local chart_lines = vim.api.nvim_buf_get_lines(0, start_row + 1, end_row - 1, false)
-                if DEBUG then
-                    notify(chart_lines)
-                end
-                M.generate_preview(chart_lines)
-                return
-            end
-            M.window:hide()
-        end,
-        nested = true,
-    })
-end
-
----Display the preview image in the preview window
-function M.render_preview()
-    -- Window closed but M.winid not nil
-    if M.window.winid and not vim.api.nvim_win_is_valid(M.window.winid) then
-        M.winid = nil
-    end
-
-    -- M.image is nil
-    if not M.image then
-        vim.notify("MermaidPreview: No preview image", vim.log.levels.WARN)
-        return
-    end
-
-    -- preview window is open
-    if M.window.bufnr and M.window.winid then
-        M.image.window = M.window.winid
-        M.image:render()
-        return
-    end
-
-    -- preview window closed
-    if not M.winid then
-        M.image.window = M.window:open()
-        -- Sometimes rendering only partially renders, likely due to the window not being fully
-        -- open yet. Delaying rendering with a specific duration seems to fix this
-        vim.defer_fn(function()
-            M.image:render()
-        end, 100)
+---Display preview of chart at cursor
+function M.preview()
+    local node = vim.treesitter.get_node()
+    local is_mermaid = ts_utils.is_mermaid_diagram(node)
+    vim.notify("MermaidPreview: " .. tostring(is_mermaid))
+    if is_mermaid then
+        -- FIX: This isn't correct because of a couple node areas that are in a mermaid
+        -- but not technically the correct text: "```", "mermaid", "```"
+        local lines = vim.treesitter.get_node_text(node, 0)
+        vim.notify("MermaidPreview: " .. lines)
+        local img = require("mermaid-preview.mermaid").generate_image(lines, config.image_scale, config.default_width)
+        if not img then
+            vim.notify("MermaidPreview: No image created")
+            return
+        end
+        M.window:show(img)
     end
 end
 
@@ -148,6 +82,7 @@ M.setup = function(opts)
 
             local node = vim.treesitter.get_node()
             if ts_utils.is_mermaid_diagram(node) then
+                vim.notify("MermaidPreview: " .. node:type())
                 -- TODO: Regenerate diagram for current cursor, only if editing a diagram
             end
         end,

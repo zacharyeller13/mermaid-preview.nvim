@@ -38,7 +38,7 @@ function M:cache_nodes()
     self.nodes = nodes
 end
 
-function M:print_nodes()
+function M:_print_nodes()
     for _, node in ipairs(self.nodes) do
         print(node:type(), node:range())
     end
@@ -48,10 +48,6 @@ end
 -- cache them as a list of nodes? or maybe a key<range>, value<text> table?
 -- A different vim.fn.tempname() for each diagram
 -- add nodes to list of nodes
-
--- TODO: nvim-treesitter.ts_utils.memoize_by_buf_tick?
--- Instead of doing M.nodes; could just memoize cache_nodes as a get_nodes func
--- and return the table instead of saving it to a field
 
 ---Check if node is in a mermaid diagram
 ---@param node? TSNode A TSNode
